@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>JobTracker — Nabidul Haque</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2236;
+    --border: #1e2d45;
+    --text: #e8edf5;
+    --text-muted: #6b7fa3;
+    --accent: #3b82f6;
+    --accent2: #6366f1;
+    --green: #10b981;
+    --red: #ef4444;
+    --yellow: #f59e0b;
+    --purple: #8b5cf6;
+    --teal: #06b6d4;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  .header {
+    padding: 20px 28px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--surface);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-left { display: flex; align-items: center; gap: 12px; }
+  .logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 18px;
+    font-weight: 800;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+  }
+  .header-sub { font-size: 12px; color: var(--text-muted); }
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 28px 0;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+  }
+  .tab {
+    padding: 10px 20px;
+    border-radius: 8px 8px 0 0;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .tab:hover { color: var(--text); background: var(--surface2); }
+  .tab.active {
+    color: var(--accent);
+    background: var(--bg);
+    border-top: 2px solid var(--accent);
+  }
+  .view { display: none; padding: 24px 28px; }
+  .view.active { display: block; animation: fadeIn 0.25s ease; }
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .stat-card:hover { transform: translateY(-2px); border-color: var(--accent); }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+  }
+  .stat-card.blue::before { background: #3b82f6; }
+  .stat-card.green::before { background: #10b981; }
+  .stat-card.purple::before { background: #8b5cf6; }
+  .stat-card.yellow::before { background: #f59e0b; }
+  .stat-card.red::before { background: #ef4444; }
+  .stat-card.gray::before { background: #6b7fa3; }
+  .stat-label { font-size: 10px; font-weight: 600; color: var(--text-muted); letter-spacing: 1px; text-transform: uppercase; margin-bottom: 8px; }
+  .stat-num { font-family: 'Syne', sans-serif; font-size: 36px; font-weight: 800; line-height: 1; }
+  .stat-card.blue .stat-num { color: #60a5fa; }
+  .stat-card.green .stat-num { color: #34d399; }
+  .stat-card.purple .stat-num { color: #a78bfa; }
+  .stat-card.yellow .stat-num { color: #fbbf24; }
+  .stat-card.red .stat-num { color: #f87171; }
+  .stat-card.gray .stat-num { color: #94a3b8; }
+  .breakdown-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 24px;
+  }
+  .breakdown-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .breakdown-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 16px;
+  }
+  .breakdown-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .breakdown-row:last-child { border-bottom: none; }
+  .breakdown-label { display: flex; align-items: center; gap: 10px; font-size: 13px; }
+  .breakdown-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .breakdown-count { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700; color: var(--text); }
+  .breakdown-bar-wrap { width: 80px; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+  .breakdown-bar { height: 100%; border-radius: 2px; transition: width 0.6s ease; }
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .search-wrap { position: relative; flex: 1; min-width: 200px; }
+  .search-wrap input {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px 10px 38px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-wrap input:focus { border-color: var(--accent); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+  .filter-select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    min-width: 130px;
+  }
+  .filter-select:focus { border-color: var(--accent); }
+  .filter-select option { background: var(--surface2); }
+  .btn {
+    padding: 10px 18px;
+    border-radius: 8px;
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+    letter-spacing: 0.3px;
+  }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { background: #2563eb; transform: translateY(-1px); }
+  .btn-ghost { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .btn-ghost:hover { color: var(--text); border-color: var(--accent); }
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .table-count { padding: 12px 16px; font-size: 12px; color: var(--text-muted); border-bottom: 1px solid var(--border); font-weight: 500; }
+  table { width: 100%; border-collapse: collapse; }
+  thead tr { background: var(--surface2); }
+  th {
+    padding: 11px 14px;
+    text-align: left;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+    border-bottom: 1px solid var(--border);
+  }
+  th:hover { color: var(--text); }
+  th.sorted .sort-arrow { opacity: 1; color: var(--accent); }
+  th .sort-arrow { margin-left: 4px; opacity: 0.4; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.15s; cursor: pointer; }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 10px 14px; font-size: 13px; }
+  td.company { font-weight: 600; color: var(--text); }
+  td.role { color: var(--text-muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
+  td.date { color: var(--text-muted); font-size: 12px; white-space: nowrap; }
+  td.notes { color: var(--text-muted); font-size: 12px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    letter-spacing: 0.2px;
+  }
+  .pill-Applied { background: #1e3a5f; color: #60a5fa; }
+  .pill-Phone { background: #2e1065; color: #c4b5fd; }
+  .pill-Video { background: #083344; color: #67e8f9; }
+  .pill-1st { background: #052e16; color: #4ade80; }
+  .pill-2nd { background: #042f14; color: #34d399; }
+  .pill-Final { background: #422006; color: #fcd34d; }
+  .pill-Offer { background: #052e16; color: #6ee7b7; }
+  .pill-Hired { background: #14532d; color: #86efac; }
+  .pill-Rejected { background: #450a0a; color: #fca5a5; }
+  .pill-Withdrawn { background: #1e293b; color: #94a3b8; }
+  .pill-Ghosted { background: #422006; color: #fde68a; }
+  .pill-Review { background: #3b0764; color: #e879f9; }
+  .pill-type { background: var(--surface2); color: var(--text-muted); border: 1px solid var(--border); }
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 28px;
+    width: 560px;
+    max-width: 95vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .modal-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 20px;
+    font-weight: 800;
+    margin-bottom: 6px;
+    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+  .modal-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 24px; }
+  .modal-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.2s;
+  }
+  .modal-close:hover { color: var(--text); border-color: var(--red); }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; }
+  .form-group.full { grid-column: 1 / -1; }
+  .form-label { font-size: 11px; font-weight: 600; color: var(--text-muted); letter-spacing: 0.8px; text-transform: uppercase; }
+  .form-input, .form-select, .form-textarea {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--accent); }
+  .form-select option { background: var(--surface2); }
+  .form-textarea { resize: vertical; min-height: 80px; }
+  .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+  .edit-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-muted);
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    margin-right: 4px;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .edit-btn:hover { color: var(--accent); border-color: var(--accent); }
+  .del-btn {
+    background: transparent;
+    border: 1px solid transparent;
+    color: var(--text-muted);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 11px;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    transition: all 0.15s;
+  }
+  .del-btn:hover { color: var(--red); border-color: var(--red); background: #450a0a30; }
+  .empty { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .empty-icon { font-size: 48px; margin-bottom: 12px; }
+  .empty-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 700; margin-bottom: 6px; color: var(--text); }
+  .response-rate-bar { height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 8px; }
+  .response-rate-fill { height: 100%; background: linear-gradient(90deg, #10b981, #3b82f6); border-radius: 3px; transition: width 0.8s ease; }
+  .rate-text { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div>
+      <div class="logo">JobTracker</div>
+      <div class="header-sub">Nabidul Haque · Application Manager</div>
+    </div>
+  </div>
+  <button class="btn btn-primary" onclick="openAdd()">+ Add Application</button>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="switchTab('dashboard', this)">📊 Dashboard</button>
+  <button class="tab" onclick="switchTab('tracker', this)">📋 Tracker</button>
+</div>
+
+<div class="view active" id="view-dashboard">
+  <div class="stats-grid" id="stats-grid"></div>
+  <div class="breakdown-grid">
+    <div class="breakdown-card">
+      <div class="breakdown-title">Status Breakdown</div>
+      <div id="status-breakdown"></div>
+    </div>
+    <div class="breakdown-card">
+      <div class="breakdown-title">Job Type Breakdown</div>
+      <div id="type-breakdown"></div>
+      <div style="margin-top:20px;">
+        <div class="breakdown-title">Response Rate</div>
+        <div style="font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:#34d399;" id="response-rate-num">—</div>
+        <div class="response-rate-bar"><div class="response-rate-fill" id="response-rate-bar" style="width:0%"></div></div>
+        <div class="rate-text" id="response-rate-sub"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="view" id="view-tracker">
+  <div class="toolbar">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-input" placeholder="Search company, role, notes..." oninput="renderTable()">
+    </div>
+    <select class="filter-select" id="filter-status" onchange="renderTable()">
+      <option value="">All Statuses</option>
+      <option>Applied</option><option>Phone Screen</option><option>Video Interview</option>
+      <option>1st Interview</option><option>2nd Interview</option><option>Final Round</option>
+      <option>Offer Received</option><option>Hired! 🎉</option><option>Rejected</option>
+      <option>Withdrawn</option><option>Ghosted</option><option>In Review</option>
+    </select>
+    <select class="filter-select" id="filter-type" onchange="renderTable()">
+      <option value="">All Types</option>
+      <option>Full-Time</option><option>Part-Time</option><option>Internship</option>
+      <option>Contract</option><option>Freelance</option><option>Seasonal</option>
+    </select>
+    <button class="btn btn-ghost" onclick="clearFilters()">Clear</button>
+  </div>
+  <div class="table-wrap">
+    <div class="table-count" id="table-count"></div>
+    <div id="table-container"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modal-overlay">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-title" id="modal-title">Add Application</div>
+    <div class="modal-sub" id="modal-sub">Fill in the details below</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label class="form-label">Company *</label>
+        <input class="form-input" id="f-company" placeholder="e.g. Google">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Job Title *</label>
+        <input class="form-input" id="f-role" placeholder="e.g. Finance Intern">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="f-status">
+          <option value="">Select...</option>
+          <option>Applied</option><option>Phone Screen</option><option>Video Interview</option>
+          <option>1st Interview</option><option>2nd Interview</option><option>Final Round</option>
+          <option>Offer Received</option><option>Hired! 🎉</option><option>Rejected</option>
+          <option>Withdrawn</option><option>Ghosted</option><option>In Review</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Job Type</label>
+        <select class="form-select" id="f-type">
+          <option value="">Select...</option>
+          <option>Full-Time</option><option>Part-Time</option><option>Internship</option>
+          <option>Contract</option><option>Freelance</option><option>Seasonal</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date Applied</label>
+        <input class="form-input" id="f-date" type="date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Location</label>
+        <input class="form-input" id="f-location" placeholder="e.g. New York, NY">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Salary / Pay</label>
+        <input class="form-input" id="f-salary" placeholder="e.g. $50k or $25/hr">
+      </div>
+      <div class="form-group full">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="f-notes" placeholder="Any notes about this application..."></textarea>
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveEntry()">Save Application</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SEED = [
+  {id:1,company:"JDA TSG",role:"Tax Preparer (Seasonal Remote)",status:"Hired! 🎉",type:"Seasonal",date:"2026-03-01",location:"Remote",salary:"—",notes:"Got the offer! Offer letter sent Mar 12."},
+  {id:2,company:"BlackRock",role:"2027 Summer – Investments, Global Capital Markets",status:"Video Interview",type:"Internship",date:"2026-03-11",location:"New York, NY",salary:"—",notes:"Video interview invite received Mar 18."},
+  {id:3,company:"SpaceX",role:"Fall 2026 Business Operations Internship",status:"Applied",type:"Internship",date:"2026-03-26",location:"—",salary:"—",notes:"Confirmation received Mar 26."},
+  {id:4,company:"Sony",role:"Tax Intern",status:"Applied",type:"Internship",date:"2026-03-24",location:"—",salary:"—",notes:"Confirmation received. Under review."},
+  {id:5,company:"Bank of New York Mellon",role:"2026 BNY Analyst Program – Risk & Compliance",status:"Applied",type:"Full-Time",date:"2026-03-24",location:"New York, NY",salary:"—",notes:"Confirmation received Mar 24."},
+  {id:6,company:"Deutsche Bank",role:"Internship – Investment Bank: Commercial Real Estate",status:"Applied",type:"Internship",date:"2026-03-24",location:"New York, NY",salary:"—",notes:"Confirmation received Mar 24."},
+  {id:7,company:"MetroPlus Health",role:"—",status:"Applied",type:"Full-Time",date:"2026-03-24",location:"New York, NY",salary:"—",notes:"Confirmation received."},
+  {id:8,company:"Acorns",role:"Finance Intern",status:"Applied",type:"Internship",date:"2026-03-22",location:"Remote",salary:"—",notes:"Confirmation received Mar 22."},
+  {id:9,company:"Nagarro",role:"—",status:"Applied",type:"Full-Time",date:"2026-03-23",location:"—",salary:"—",notes:"Confirmation received Mar 23."},
+  {id:10,company:"Deloitte",role:"Full Time Tax Consultant – Tax Tech Consulting",status:"Applied",type:"Internship",date:"2026-03-14",location:"—",salary:"—",notes:"Application follow-up requested."},
+  {id:11,company:"Goldman Sachs",role:"—",status:"Applied",type:"Internship",date:"2026-03-11",location:"New York, NY",salary:"—",notes:"Confirmation received Mar 11."},
+  {id:12,company:"Con Edison",role:"Analyst Aide Temp Coops – Business Majors",status:"Applied",type:"Internship",date:"2026-03-11",location:"New York, NY",salary:"—",notes:"Confirmation received Mar 11."},
+  {id:13,company:"New York Life",role:"2026 TDAI Summer Internship – Data Engineering",status:"Applied",type:"Internship",date:"2026-03-11",location:"New York, NY",salary:"—",notes:"Confirmation received Mar 11."},
+  {id:14,company:"BDO",role:"Core Tax Intern – Jan to Aug 2027",status:"Applied",type:"Internship",date:"2026-03-12",location:"Long Island, NY",salary:"—",notes:"Confirmation received Mar 12."},
+  {id:15,company:"EisnerAmper",role:"2026 Tax Winter Intern – Real Estate",status:"Applied",type:"Internship",date:"2025-11-25",location:"—",salary:"—",notes:"Multiple roles applied."},
+  {id:16,company:"EisnerAmper",role:"2026 Tax Winter Intern – Financial Services",status:"Applied",type:"Internship",date:"2025-11-21",location:"—",salary:"—",notes:"Multiple applications submitted."},
+  {id:17,company:"RSM",role:"Federal Tax Services Intern – Summer 2027",status:"Applied",type:"Internship",date:"2026-03-05",location:"—",salary:"—",notes:"Also applied: State & Local Tax Intern."},
+  {id:18,company:"RSM",role:"State & Local Tax Intern – Summer 2027",status:"Applied",type:"Internship",date:"2026-03-05",location:"—",salary:"—",notes:"Also applied: Federal Tax Services Intern."},
+  {id:19,company:"Baker Tilly",role:"—",status:"Applied",type:"Internship",date:"2026-03-13",location:"—",salary:"—",notes:"Multiple confirmations received same day."},
+  {id:20,company:"JPMorgan Chase",role:"2027 Public Finance Banking Summer Analyst",status:"Applied",type:"Internship",date:"2026-03-12",location:"New York, NY",salary:"—",notes:"Confirmation: Job #210690469."},
+  {id:21,company:"JPMorgan Chase",role:"2027 Markets Summer Analyst Program",status:"Applied",type:"Internship",date:"2026-03-12",location:"New York, NY",salary:"—",notes:"Confirmation: Job #210690325."},
+  {id:22,company:"JPMorgan Chase",role:"2027 Markets Summer Analyst – Research",status:"Applied",type:"Internship",date:"2026-03-12",location:"New York, NY",salary:"—",notes:"Confirmation: Job #210690282."},
+  {id:23,company:"Xpansiv",role:"Summer Internship (Blackstone Portfolio Co.)",status:"Applied",type:"Internship",date:"2026-03-12",location:"—",salary:"—",notes:"Blackstone portfolio company."},
+  {id:24,company:"NYC EDC",role:"Summer Intern – Accounting",status:"Applied",type:"Internship",date:"2025-11-26",location:"New York, NY",salary:"—",notes:"Confirmation received Nov 26."},
+  {id:25,company:"Hermès",role:"Treasury/Sales Audit & Tax Intern (2026 Sem 2)",status:"Applied",type:"Internship",date:"2026-03-16",location:"—",salary:"—",notes:"Full application submitted."},
+  {id:26,company:"Coinbase",role:"—",status:"Applied",type:"Internship",date:"2025-11-04",location:"—",salary:"—",notes:"Confirmation received Nov 4."},
+  {id:27,company:"Grant Thornton",role:"Tax Intern – Summer 2027",status:"Applied",type:"Internship",date:"2025-11-04",location:"—",salary:"—",notes:"Confirmation: Job #113087."},
+  {id:28,company:"H&R Block",role:"Senior TTS Specialist",status:"Applied",type:"Full-Time",date:"2026-03-15",location:"—",salary:"—",notes:"Internal application."},
+  {id:29,company:"Blackstone / Gray Foundation",role:"Undergraduate Philanthropy Intern",status:"Applied",type:"Internship",date:"2026-03-23",location:"—",salary:"—",notes:"Tracked via Seekr."},
+  {id:30,company:"NYC Startup (Blackstone)",role:"Finance Intern",status:"Applied",type:"Internship",date:"2026-03-12",location:"New York, NY",salary:"—",notes:"Accessed through Seekr."},
+  {id:31,company:"MVP Academy",role:"Operations Intern",status:"Applied",type:"Internship",date:"2026-03-12",location:"—",salary:"—",notes:"LaunchPad Partner startup."},
+  {id:32,company:"CUNY Career Launch",role:"Marketing & Communications Hub",status:"Rejected",type:"Internship",date:"2026-01-23",location:"New York, NY",salary:"—",notes:"Rejected Feb 27 – ineligibility."},
+  {id:33,company:"CUNY Career Launch",role:"STEM & Green Hub",status:"Applied",type:"Internship",date:"2025-12-19",location:"New York, NY",salary:"—",notes:"Applied Dec 19 2025."},
+  {id:34,company:"University of Michigan",role:"NYCHVS – Field Interviewer",status:"Applied",type:"Contract",date:"2025-11-25",location:"New York, NY",salary:"—",notes:"Background check initiated."},
+  {id:35,company:"Spectrum",role:"Customer Service Representative",status:"Rejected",type:"Full-Time",date:"2025-10-29",location:"—",salary:"—",notes:"Rejected Oct 31 2025."},
+  {id:36,company:"Deloitte",role:"One Team Associate Intern",status:"Applied",type:"Internship",date:"2025-11-04",location:"—",salary:"—",notes:"Confirmation received Nov 4 2025."},
+  {id:37,company:"PwC",role:"Tax Intern – Summer 2026",status:"Applied",type:"Internship",date:"2025-09-12",location:"—",salary:"—",notes:"Assessment reminder sent."},
+  {id:38,company:"PwC",role:"Audit Intern – Summer 2026",status:"Applied",type:"Internship",date:"2025-09-12",location:"—",salary:"—",notes:"Assessment required."},
+  {id:39,company:"PwC",role:"Audit Intern – Winter 2026",status:"Applied",type:"Internship",date:"2025-09-12",location:"—",salary:"—",notes:"Assessment required."},
+  {id:40,company:"PwC",role:"Tax Intern – Winter 2026",status:"Applied",type:"Internship",date:"2025-09-12",location:"—",salary:"—",notes:"Assessment required."},
+  {id:41,company:"PwC",role:"Transfer Pricing Intern – Summer 2026",status:"Applied",type:"Internship",date:"2025-09-12",location:"—",salary:"—",notes:"Assessment required."},
+  {id:42,company:"PwC",role:"Data & Analytics Tech Consulting Intern",status:"Applied",type:"Internship",date:"2025-09-12",location:"—",salary:"—",notes:"Assessment required."},
+  {id:43,company:"Canon USA",role:"—",status:"Applied",type:"Internship",date:"2026-03-05",location:"Melville, NY",salary:"—",notes:"Two confirmations received."},
+  {id:44,company:"Bloomberg",role:"2026 Bloomberg Customer Support Internship",status:"Applied",type:"Internship",date:"2026-03-15",location:"New York, NY",salary:"—",notes:"Plum assessment completed."},
+  {id:45,company:"Bloomberg",role:"AI Support Associate – 12 Month Contract",status:"Rejected",type:"Contract",date:"2026-03-11",location:"New York, NY",salary:"—",notes:"Applied Mar 11. Rejected Mar 19."},
+  {id:46,company:"Louis Vuitton",role:"Accounting Intern Summer 2026 – Finance",status:"Rejected",type:"Internship",date:"2026-03-05",location:"—",salary:"—",notes:"Rejected Mar 21."},
+  {id:47,company:"Louis Vuitton",role:"Business Performance Intern – Full Time 2026",status:"Applied",type:"Internship",date:"2026-03-05",location:"—",salary:"—",notes:"Applied Mar 5."},
+  {id:48,company:"Louis Vuitton",role:"Client Relations Intern – 2026",status:"Rejected",type:"Internship",date:"2026-03-05",location:"—",salary:"—",notes:"Rejected Mar 15."},
+  {id:49,company:"JPMorgan Chase",role:"2026 C&IB Risk Management Summer Analyst",status:"Rejected",type:"Internship",date:"2026-02-06",location:"New York, NY",salary:"—",notes:"HireVue video done. Rejected Mar 3."},
+  {id:50,company:"JPMorgan Chase",role:"2026 Asset Management Client Summer Analyst",status:"Rejected",type:"Internship",date:"2025-12-01",location:"New York, NY",salary:"—",notes:"Rejected Dec 8 2025."},
+  {id:51,company:"Jane Street",role:"—",status:"Rejected",type:"Full-Time",date:"2026-03-04",location:"New York, NY",salary:"—",notes:"Confirmation Mar 4. Rejected Mar 11."},
+  {id:52,company:"IBM",role:"Business Transformation Consultant Intern 2026",status:"Applied",type:"Internship",date:"2026-03-13",location:"—",salary:"—",notes:"Next steps email Mar 13."},
+  {id:53,company:"IBM",role:"Associate Business Transformation Consultant – ServiceNow",status:"Applied",type:"Full-Time",date:"2026-03-13",location:"—",salary:"—",notes:"Confirmation Mar 13."},
+  {id:54,company:"IBM",role:"Account Technical Leader",status:"Rejected",type:"Full-Time",date:"2026-03-13",location:"—",salary:"—",notes:"Rejected Mar 20."},
+  {id:55,company:"Grant Thornton",role:"Tax 2027 Internship – Iselin NJ Office",status:"Applied",type:"Internship",date:"2025-11-04",location:"Iselin, NJ",salary:"—",notes:"Recruiter pausing recruitment temporarily."},
+  {id:56,company:"BlackRock",role:"2026 Summer – Corporate & Strategic / Audit",status:"Rejected",type:"Internship",date:"2025-11-01",location:"New York, NY",salary:"—",notes:"Rejected Nov 21 2025."},
+  {id:57,company:"Hermès",role:"Accounting Intern (2025 Semester 2)",status:"Applied",type:"Internship",date:"2025-12-03",location:"—",salary:"—",notes:"Application reviewed Dec 3 2025."},
+  {id:58,company:"Sony",role:"Accounting Intern",status:"Rejected",type:"Internship",date:"2026-01-01",location:"—",salary:"—",notes:"Rejected Jan 21 2026."},
+  {id:59,company:"University of Michigan",role:"HCAP Study – Field Interviewer",status:"Applied",type:"Contract",date:"2026-03-06",location:"—",salary:"—",notes:"Two study roles applied."},
+  {id:60,company:"University of Michigan",role:"Survey Research Center – NYCHVS",status:"Hired! 🎉",type:"Contract",date:"2025-11-21",location:"New York, NY",salary:"—",notes:"Onboarding email Nov 11!"},
+  {id:61,company:"University of Michigan",role:"NYC Housing & Vacancy Survey – Interviewer",status:"1st Interview",type:"Contract",date:"2025-11-04",location:"New York, NY",salary:"—",notes:"Interview scheduled Nov 5 2025."},
+  {id:62,company:"Mount Sinai Health",role:"Trainee (Intern) – Financial Administration",status:"Rejected",type:"Internship",date:"2026-03-24",location:"New York, NY",salary:"—",notes:"Applied Mar 24. Rejected Mar 26."},
+  {id:63,company:"H&R Block",role:"Senior TTS Specialist (Internal)",status:"Rejected",type:"Full-Time",date:"2026-03-15",location:"—",salary:"—",notes:"Rejected Mar 23."},
+  {id:64,company:"Bloomberg",role:"2026 Analytics & Sales Internship",status:"Rejected",type:"Internship",date:"2026-03-08",location:"New York, NY",salary:"—",notes:"Plum next stage Mar 8. Rejected Mar 11."},
+  {id:65,company:"JPMorgan Chase",role:"2027 Public Finance / Markets Analyst (x3)",status:"Rejected",type:"Internship",date:"2026-03-12",location:"New York, NY",salary:"—",notes:"3 rejections received Mar 15 2026."},
+  {id:66,company:"PwC",role:"Tax JD Intern – Summer 2026",status:"Rejected",type:"Internship",date:"2025-11-04",location:"—",salary:"—",notes:"Rejected Nov 5 2025."},
+  {id:67,company:"PwC",role:"Transfer Pricing Intern – Summer 2026",status:"Rejected",type:"Internship",date:"2025-10-01",location:"—",salary:"—",notes:"Rejected Oct 20 2025."},
+  {id:68,company:"PwC",role:"Data & Analytics Tech Consulting – Summer 2026",status:"Rejected",type:"Internship",date:"2025-09-01",location:"—",salary:"—",notes:"Rejected Sep 30 2025."},
+  {id:69,company:"BlackRock",role:"2026 Summer – Corporate & Strategic / Audit",status:"Rejected",type:"Internship",date:"2025-11-01",location:"New York, NY",salary:"—",notes:"Rejected Nov 21 2025."},
+  {id:70,company:"JPMorgan Chase",role:"2026 C&IB Risk Mgmt Summer Analyst",status:"Rejected",type:"Internship",date:"2026-02-06",location:"New York, NY",salary:"—",notes:"HireVue video done. Rejected Mar 3 2026."},
+  {id:71,company:"JPMorgan Chase",role:"2026 Asset Management Client Summer Analyst",status:"Rejected",type:"Internship",date:"2025-12-01",location:"New York, NY",salary:"—",notes:"Rejected Dec 8 2025."},
+  {id:72,company:"MTA Construction and Development",role:"Finance Operations Intern",status:"Applied",type:"Internship",date:"2026-03-25",location:"New York, NY",salary:"—",notes:"Applied via form."},
+  {id:73,company:"Synergy-DoubleTree",role:"Accounting Clerk-Accounts Payable",status:"Applied",type:"Full-Time",date:"2026-03-28",location:"New York, NY",salary:"$20-25/hr",notes:"I have 2-5 years of Hospitality, include my HHA Cert if interviewed."},
+  {id:74,company:"JDA TSG",role:"Tax Expert Opportunity",status:"Offer Received",type:"Seasonal",date:"2026-03-01",location:"Remote",salary:"—",notes:"Offer letter signed."},
+  {id:75,company:"CUNY MTA Summer 2026",role:"—",status:"Applied",type:"Internship",date:"2026-03-26",location:"New York, NY",salary:"—",notes:"CUNY InternshipPrograms reminder."},
+];
+
+const STATUS_PILL = {
+  "Applied":"pill-Applied","Phone Screen":"pill-Phone","Video Interview":"pill-Video",
+  "1st Interview":"pill-1st","2nd Interview":"pill-2nd","Final Round":"pill-Final",
+  "Offer Received":"pill-Offer","Hired! 🎉":"pill-Hired","Rejected":"pill-Rejected",
+  "Withdrawn":"pill-Withdrawn","Ghosted":"pill-Ghosted","In Review":"pill-Review"
+};
+const STATUS_COLOR = {
+  "Applied":"#60a5fa","Phone Screen":"#c4b5fd","Video Interview":"#67e8f9",
+  "1st Interview":"#4ade80","2nd Interview":"#34d399","Final Round":"#fcd34d",
+  "Offer Received":"#6ee7b7","Hired! 🎉":"#86efac","Rejected":"#f87171",
+  "Withdrawn":"#94a3b8","Ghosted":"#fde68a","In Review":"#e879f9"
+};
+
+let jobs = [];
+let editingId = null;
+let sortCol = 'date';
+let sortDir = -1;
+
+function loadData() {
+  try {
+    const saved = localStorage.getItem('nabidul_jobs_v2');
+    if (saved) { jobs = JSON.parse(saved); }
+    else { jobs = SEED.map(j => ({...j})); saveData(); }
+  } catch(e) { jobs = SEED.map(j => ({...j})); }
+}
+
+function saveData() {
+  try { localStorage.setItem('nabidul_jobs_v2', JSON.stringify(jobs)); } catch(e) {}
+}
+
+function getNextId() {
+  return jobs.length > 0 ? Math.max(...jobs.map(j => j.id)) + 1 : 1;
+}
+
+function switchTab(tab, el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('view-' + tab).classList.add('active');
+  if (tab === 'dashboard') renderDashboard();
+  if (tab === 'tracker') renderTable();
+}
+
+function renderDashboard() {
+  const total = jobs.length;
+  const active = jobs.filter(j => ["Applied","Phone Screen","Video Interview","1st Interview","2nd Interview","Final Round","In Review"].includes(j.status)).length;
+  const interviews = jobs.filter(j => ["Phone Screen","Video Interview","1st Interview","2nd Interview","Final Round"].includes(j.status)).length;
+  const offers = jobs.filter(j => ["Offer Received","Hired! 🎉"].includes(j.status)).length;
+  const rejected = jobs.filter(j => j.status === "Rejected").length;
+  const ghosted = jobs.filter(j => j.status === "Ghosted").length;
+
+  document.getElementById('stats-grid').innerHTML = [
+    {label:"Total Apps",val:total,cls:"blue"},
+    {label:"Active",val:active,cls:"green"},
+    {label:"Interviews",val:interviews,cls:"purple"},
+    {label:"Offers / Hired",val:offers,cls:"yellow"},
+    {label:"Rejected",val:rejected,cls:"red"},
+    {label:"Ghosted",val:ghosted,cls:"gray"},
+  ].map(s => `<div class="stat-card ${s.cls}"><div class="stat-label">${s.label}</div><div class="stat-num">${s.val}</div></div>`).join('');
+
+  const statusCounts = {};
+  jobs.forEach(j => { statusCounts[j.status] = (statusCounts[j.status]||0) + 1; });
+  document.getElementById('status-breakdown').innerHTML = Object.entries(statusCounts).sort((a,b)=>b[1]-a[1]).map(([s,c]) => `
+    <div class="breakdown-row">
+      <div class="breakdown-label"><div class="breakdown-dot" style="background:${STATUS_COLOR[s]||'#6b7fa3'}"></div><span>${s}</span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(c/total*100)}%;background:${STATUS_COLOR[s]||'#6b7fa3'}"></div></div>
+        <div class="breakdown-count">${c}</div>
+      </div>
+    </div>`).join('');
+
+  const typeCounts = {};
+  jobs.forEach(j => { if(j.type) typeCounts[j.type] = (typeCounts[j.type]||0) + 1; });
+  const typeColors = {"Full-Time":"#60a5fa","Part-Time":"#c4b5fd","Internship":"#4ade80","Contract":"#fb923c","Freelance":"#f472b6","Seasonal":"#fcd34d"};
+  document.getElementById('type-breakdown').innerHTML = Object.entries(typeCounts).sort((a,b)=>b[1]-a[1]).map(([t,c]) => `
+    <div class="breakdown-row">
+      <div class="breakdown-label"><div class="breakdown-dot" style="background:${typeColors[t]||'#6b7fa3'}"></div><span>${t}</span></div>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="breakdown-bar-wrap"><div class="breakdown-bar" style="width:${Math.round(c/total*100)}%;background:${typeColors[t]||'#6b7fa3'}"></div></div>
+        <div class="breakdown-count">${c}</div>
+      </div>
+    </div>`).join('');
+
+  const responded = jobs.filter(j => !["Applied","Ghosted"].includes(j.status)).length;
+  const rate = total > 0 ? Math.round(responded/total*100) : 0;
+  document.getElementById('response-rate-num').textContent = rate + '%';
+  document.getElementById('response-rate-bar').style.width = rate + '%';
+  document.getElementById('response-rate-sub').textContent = `${responded} of ${total} applications got a response`;
+}
+
+function renderTable() {
+  const search = document.getElementById('search-input').value.toLowerCase();
+  const statusF = document.getElementById('filter-status').value;
+  const typeF = document.getElementById('filter-type').value;
+
+  let filtered = jobs.filter(j => {
+    const matchSearch = !search || j.company.toLowerCase().includes(search) || j.role.toLowerCase().includes(search) || (j.notes||'').toLowerCase().includes(search) || (j.location||'').toLowerCase().includes(search);
+    return matchSearch && (!statusF || j.status === statusF) && (!typeF || j.type === typeF);
+  });
+
+  filtered.sort((a,b) => {
+    let av = a[sortCol]||'', bv = b[sortCol]||'';
+    if (sortCol==='date') { av=new Date(av); bv=new Date(bv); return sortDir*(bv-av); }
+    return sortDir*av.toString().localeCompare(bv.toString());
+  });
+
+  document.getElementById('table-count').textContent = `Showing ${filtered.length} of ${jobs.length} applications`;
+
+  if (!filtered.length) {
+    document.getElementById('table-container').innerHTML = `<div class="empty"><div class="empty-icon">🔍</div><div class="empty-title">No applications found</div><p>Try adjusting your search or filters</p></div>`;
+    return;
+  }
+
+  const cols = [{key:'status',label:'STATUS'},{key:'company',label:'COMPANY'},{key:'role',label:'ROLE'},{key:'type',label:'TYPE'},{key:'date',label:'DATE APPLIED'},{key:'location',label:'LOCATION'},{key:'salary',label:'SALARY'},{key:'notes',label:'NOTES'},{key:'_actions',label:''}];
+  const thead = `<thead><tr>${cols.map(c => c.key==='_actions'?'<th></th>':`<th onclick="setSort('${c.key}')" class="${sortCol===c.key?'sorted':''}">${c.label}<span class="sort-arrow">${sortCol===c.key?(sortDir===1?'↑':'↓'):'↕'}</span></th>`).join('')}</tr></thead>`;
+  const tbody = '<tbody>'+filtered.map(j=>`
+    <tr onclick="openEdit(${j.id})">
+      <td><span class="pill ${STATUS_PILL[j.status]||'pill-Applied'}">${j.status||'—'}</span></td>
+      <td class="company">${j.company}</td>
+      <td class="role">${j.role||'—'}</td>
+      <td><span class="pill pill-type">${j.type||'—'}</span></td>
+      <td class="date">${formatDate(j.date)}</td>
+      <td class="date">${j.location||'—'}</td>
+      <td class="date">${j.salary||'—'}</td>
+      <td class="notes">${j.notes||'—'}</td>
+      <td onclick="event.stopPropagation()">
+        <button class="edit-btn" onclick="openEdit(${j.id})">Edit</button>
+        <button class="del-btn" onclick="deleteEntry(${j.id})">✕</button>
+      </td>
+    </tr>`).join('')+'</tbody>';
+
+  document.getElementById('table-container').innerHTML = `<table>${thead}${tbody}</table>`;
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const dt = new Date(d+'T00:00:00');
+  if (isNaN(dt)) return d;
+  return dt.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+}
+
+function setSort(col) {
+  if (sortCol===col) sortDir*=-1; else { sortCol=col; sortDir=-1; }
+  renderTable();
+}
+
+function clearFilters() {
+  document.getElementById('search-input').value='';
+  document.getElementById('filter-status').value='';
+  document.getElementById('filter-type').value='';
+  renderTable();
+}
+
+function openAdd() {
+  editingId=null;
+  document.getElementById('modal-title').textContent='Add Application';
+  document.getElementById('modal-sub').textContent='Fill in the details below';
+  ['company','role','location','salary','notes'].forEach(f=>document.getElementById('f-'+f).value='');
+  document.getElementById('f-status').value='Applied';
+  document.getElementById('f-type').value='Internship';
+  document.getElementById('f-date').value=new Date().toISOString().split('T')[0];
+  document.getElementById('modal-overlay').classList.add('open');
+  document.getElementById('f-company').focus();
+  switchTab('tracker',document.querySelectorAll('.tab')[1]);
+}
+
+function openEdit(id) {
+  const j=jobs.find(j=>j.id===id); if(!j)return;
+  editingId=id;
+  document.getElementById('modal-title').textContent='Edit Application';
+  document.getElementById('modal-sub').textContent=j.company+' — '+(j.role||'');
+  document.getElementById('f-company').value=j.company;
+  document.getElementById('f-role').value=j.role||'';
+  document.getElementById('f-status').value=j.status||'';
+  document.getElementById('f-type').value=j.type||'';
+  document.getElementById('f-date').value=j.date||'';
+  document.getElementById('f-location').value=j.location||'';
+  document.getElementById('f-salary').value=j.salary||'';
+  document.getElementById('f-notes').value=j.notes||'';
+  document.getElementById('modal-overlay').classList.add('open');
+}
+
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); editingId=null; }
+
+function saveEntry() {
+  const company=document.getElementById('f-company').value.trim();
+  if(!company){alert('Company name is required!');return;}
+  const entry={
+    id:editingId||getNextId(),company,
+    role:document.getElementById('f-role').value.trim(),
+    status:document.getElementById('f-status').value,
+    type:document.getElementById('f-type').value,
+    date:document.getElementById('f-date').value,
+    location:document.getElementById('f-location').value.trim(),
+    salary:document.getElementById('f-salary').value.trim(),
+    notes:document.getElementById('f-notes').value.trim(),
+  };
+  if(editingId){const idx=jobs.findIndex(j=>j.id===editingId);if(idx!==-1)jobs[idx]=entry;}
+  else jobs.unshift(entry);
+  saveData(); closeModal(); renderTable(); renderDashboard();
+}
+
+function deleteEntry(id) {
+  if(!confirm('Delete this application?'))return;
+  jobs=jobs.filter(j=>j.id!==id);
+  saveData(); renderTable(); renderDashboard();
+}
+
+document.getElementById('modal-overlay').addEventListener('click',function(e){if(e.target===this)closeModal();});
+
+loadData();
+renderDashboard();
+</script>
+</body>
+</html>
